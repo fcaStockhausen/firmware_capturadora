@@ -1,0 +1,45 @@
+#!/bin/zsh
+# ms2131_fix120: reconfigura el scaler de la MS2131 para capturar 1080p120
+# a ancho completo (1920) en vez de 960 diezmado+estirado.
+#
+# La tarjeta solo aplica su config en eventos de señal: si cambias la tasa
+# de refresco de la fuente (o reconectas el HDMI/USB), vuelve a correr este
+# script. Verifica con `status`.
+#
+# Uso:
+#   ms2131_fix120 status   -> muestra config actual
+#   ms2131_fix120 apply    -> aplica fix (stop scaler -> anchos 1920 -> start)
+#   ms2131_fix120 revert   -> devuelve la config que el firmware usa a 120Hz
+
+X="$(cd "$(dirname "$0")" && pwd)/ms213x_xdata"
+case "$1" in
+  status)
+    echo "f600(scaler): $($X read f600 | awk '{print $3}')"
+    echo "f606/f607(ancho captura): $($X read f606 | awk '{print $3}') $($X read f607 | awk '{print $3}')  (80 07 = 1920 bueno / c0 03 = 960 diezmado)"
+    echo "f65c(rescale H): $($X read f65c | awk '{print $3}')  (10 = off bueno / 08 = diezmado)"
+    ;;
+  apply)
+    $X write f600 0x00
+    $X write f606 0x80; $X write f607 0x07
+    $X write f618 0x80; $X write f619 0x07
+    $X write f660 0x80; $X write f661 0x07
+    $X write f65c 0x10
+    $X write f600 0x01
+    echo "fix aplicado (1920 completo, sin diezmado H)"
+    ;;
+  guard)
+    echo "watchdog corriendo (Ctrl+C para detener). Abre tu app de captura y usa."
+    exec $X guard f606 150
+    ;;
+  revert)
+    $X write f600 0x00
+    $X write f606 0xc0; $X write f607 0x03   # 960
+    $X write f618 0xc0; $X write f619 0x03
+    $X write f660 0xc0; $X write f661 0x03
+    $X write f65c 0x08
+    $X write f600 0x01
+    echo "revertido a config firmware (960)"
+    ;;
+  *)
+    echo "uso: $0 status|apply|revert"; exit 1 ;;
+esac

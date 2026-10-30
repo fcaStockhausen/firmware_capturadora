@@ -1,0 +1,8 @@
+
+char sub_90bf(undefined1 param_1,undefined1 *param_2)
+
+{
+  *param_2 = param_1;
+  return DAT_INTMEM_31 * '\x04';
+}
+

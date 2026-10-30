@@ -1,0 +1,9 @@
+
+undefined1 sub_4137(undefined1 param_1,undefined1 *param_2,undefined1 param_3)
+
+{
+  *param_2 = param_1;
+  param_2[1] = param_3;
+  return DAT_EXTMEM_1af5;
+}
+

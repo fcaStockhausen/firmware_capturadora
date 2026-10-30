@@ -1,0 +1,8 @@
+
+void sub_25a3(undefined1 param_1)
+
+{
+                    /* WARNING: Subroutine does not return */
+  sub_1253(param_1);
+}
+

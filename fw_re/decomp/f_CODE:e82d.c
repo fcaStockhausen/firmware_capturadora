@@ -1,0 +1,10 @@
+
+void sub_e82d(void)
+
+{
+  sub_ee2f(1,0xf0,0x31);
+  sub_ee2f(0x10,0xf0,0x30);
+  sub_ee2f(10,0xf0,0x3a);
+  return;
+}
+

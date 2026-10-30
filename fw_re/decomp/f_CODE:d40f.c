@@ -1,0 +1,11 @@
+
+byte sub_d40f(undefined1 param_1,char param_2,char param_3)
+
+{
+  byte bVar1;
+  char in_PSW;
+  
+  bVar1 = sub_0ec5(param_1,param_3 - (in_PSW >> 7));
+  return param_2 << 1 | CARRY1(bVar1,bVar1);
+}
+

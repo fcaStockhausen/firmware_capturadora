@@ -1,0 +1,8 @@
+
+void sub_303f(void)
+
+{
+  sub_0d92(0xf0,0xab,0x1a,1,0x23,1,0,0x14);
+  return;
+}
+

@@ -1,0 +1,8 @@
+
+void sub_2fde(void)
+
+{
+  sub_0d92(0x14,0xe5,0x1a,1,0x1b,1,0,0xf);
+  return;
+}
+

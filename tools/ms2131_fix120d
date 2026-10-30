@@ -1,0 +1,10 @@
+#!/bin/zsh
+# ms2131_fix120d: demonio MS2131
+# Solo corre el smartguard (python): corrige la diezmacion /2 de 1080p120
+# para el formato activo, sin forzar formatos ni pelear con las apps.
+# Reintenta si la tarjeta no esta conectada.
+DIR="$(cd "$(dirname "$0")" && pwd)"
+while true; do
+  /usr/bin/python3 "$DIR/ms2131_smartguard.py"
+  sleep 5
+done

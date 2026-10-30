@@ -1,0 +1,10 @@
+
+void sub_e90e(void)
+
+{
+  sub_ee2f(0x80,0xf5,0xcf);
+  sub_e971(1);
+  sub_0016(0x80,0xf5,0xcf);
+  return;
+}
+

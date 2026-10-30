@@ -1,0 +1,8 @@
+
+void sub_3177(void)
+
+{
+  sub_0d92(0x4a,0xf0,0x22,1,0x24,1,1,0);
+  return;
+}
+
