@@ -215,3 +215,68 @@ El camino: RE de la batería (0x42D0+, caller 0x50D4) y de dónde salen sus
 valores (work-struct) para encontrar el parámetro de medio ancho. El flag
 0x20.1 NO es el camino. La alternativa realista: el daemon ya lo hace
 perfecto en caliente.
+
+---
+
+# Path de AUDIO — investigación del thump ~1Hz (sesión 2026-11-14)
+
+## Contexto (medición en scalapp, ver ROADMAP scalapp)
+Con video streameando aparecen tonos inyectados EN LAS MUESTRAS de audio:
+- Sesión 29/10: tono 60.06Hz (+armónicos).
+- Sesión 14/11 (1080p60 nativo): PAR 59.5490 / 60.4505Hz batiendo a
+  0.9015Hz (el "tum tum" audible), + familia 29.770/30.236Hz.
+- Audio-only: LIMPIO (0 tones) → el origen es el dominio de video.
+- Las frecuencias SE MUDAN entre configuraciones (siempre alrededor
+  del refresco) → bandas laterales tipo FM de un reloj esclavizado.
+
+## Descriptores UAC (flash del backup 2617_44fc)
+- 2 sets de descriptores @ flash 0x6e9 y 0xc73 (modos USB2/USB3).
+- Interface AC #2, AS #3 alt1.
+- AS FORMAT TYPE I: **2ch / 16-bit / 48000Hz exactos** (tSamFreq 0xBB80).
+- **EP 0x82**, isocrono DATA, wMaxPacket 192, `bSynchAddress=0x00`,
+  **SIN endpoint de feedback** → el device promete audio SOF-locked
+  pero NO hay mecanismo explícito: si su reloj de muestreo deriva de
+  otro dominio, el host no resamplea y el ruido queda EN BANDA.
+
+## Candidatos XDATA del reloj/config de audio (MAPA_REGISTROS.txt)
+Bloques con cara de PLL/divisor (escrituras de pares 16-bit +
+constantas, gated por estado de modo):
+- `0xF102/F103` ← site 0x69c9: guard `r7==5`; escribe par, const 0xF0
+  vía helper 0x6e64; sigue con F108/F109 ← par r7:r6. Lee estado 0x1A74.
+- `0xF146/F147` ← site 0x6a21: guard `[0x1A72]^4==0`; **const 0xF4**
+  (¿divisor?) + par r6.
+- `0xF12A` ← site 0x4d8d: valor compuesto de nibbles de r2/r3
+  (decode de dígitos?); también F122/F123 a cero. Lee estado 0x1A78.
+Los helpers 0x6e64/0x6da7/0x6e2d (¿wait-ready de PLL?) sin analizar.
+
+## Hipótesis de CAUSA (a verificar en silicio)
+El divisor/reloj maestro de audio (f10x/f14x) se deriva del dominio
+de video (PLL/pixel) y/o se RETUNEA dinámicamente según el modo → el
+ripple del timing de video (decimación, hot-switch, buffering de
+línea) fase-modula el reloj de muestreo → bandas laterales alrededor
+de refresco/2 y refresco = los pares medidos. Sin feedback EP, el
+host no puede corregirlo → tonos en banda.
+
+## Próximos pasos (en orden)
+1. **EN VIVO (device libre, video-only — sin cliente de audio, el HID
+   mata el isoc):** pollear con xdata los registros F102/F106/F108/
+   F142/F146 (y 0x1A72/0x1A74/0x1A78) durante streaming de video:
+   - Si TOGGLEAN periódicamente (~0.5-1Hz o por frame): retuning
+     dinámico = mecanismo confirmado EN SILICIO.
+   - Si estáticos: el acople es por derivación de reloj (PLL) →
+     analizar helper 0x6e64 y el divisor 0xF4.
+2. Encontrar la bomba del EP 0x82 ( quién llena el FIFO isoc) para
+   confirmar la fuente de muestras.
+3. Capturas discriminantes en scalapp (atribución de tonos):
+   a) UVC 30 nativo (--30) → ¿el par baja a ~30Hz o queda en 60?
+   b) fuente a 1080p60 (en vez de 120) → ¿se mueve el par?
+4. FIX posibles: parche de firmware (divisor estático del cristal —
+   hay tooling de flash y precedentes) / mantener notches host-side
+   (ya implementado y testeado en scalapp).
+
+## Estado
+- [x] Descriptores UAC parseados
+- [x] Bloques candidatos identificados (f10x/f14x/f12a)
+- [ ] Watch en vivo de los candidatos
+- [ ] Bomba EP 0x82 localizada
+- [ ] Causa confirmada en silicio
