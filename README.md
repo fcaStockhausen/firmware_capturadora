@@ -3,6 +3,16 @@
 Ingeniería inversa y fixes para la capturadora **MacroSilicon MS2131**
 (USB 0x345F:0x2131, USB3, HDMI in → UVC out).
 
+> **Compañero de [`scalapp`](../scalapp)** — el monitor A/V (Rust,
+> macOS) que consume este hardware. Las investigaciones de este repo
+> se convierten en features/mitigaciones de scalapp (el fix del
+> diezmado → negociación de modo exacta; el hum video→audio → notch
+        > adaptativo host-side; el mapa XDATA → diagnósticos). El pipeline
+> de trabajo: **acá se mide y atribuye en el silicio, en scalapp se
+> convierte en producto**. Ver `fw_re/NOTA_AUDIO_UPSTREAM.md` para el
+> caso completo más reciente (thump ~1Hz: causa raíz atribuida a la
+> bomba de video UVC, experimento all-in de 96k en flash, veredicto).
+
 ## Estado actual
 
 - **Firmware en la tarjeta**: `flat3` (jmp120 + {8758,9bd1,dab7,e655})
