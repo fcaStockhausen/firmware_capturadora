@@ -294,11 +294,29 @@ bomba del EP — próximo milestone RE.
 4. FIX: parche de firmware (pacing contra cristal) o notches host-side
    (ya operativos en scalapp).
 
+## ATRIBUCIÓN CONCLUIDA (17/11, capturas A/B con contenido)
+- A (UVC 60fps nativo): portador **119.998Hz** (2× tasa UVC), bandas
+  ±0.06-0.08Hz.
+- B (UVC 30fps nativo): portadores **60.004 y 30.001Hz** (2× y 1× tasa
+  UVC), bandas ±0.046Hz.
+- El portador SIGUE a la tasa de frames UVC — NO al HDMI de entrada
+  (si fuera 59.94/119.88 no se movería con --30).
+- **CAUSA (dominio)**: la bomba isócrona de VIDEO UVC perturba la
+  entrega de muestras del isoc de AUDIO (arbitración interna del
+  USB del chip: cada frame de video en ráfaga roba ciclos al isoc de
+  audio → micro-saltos de fase periódicos a f_uvc y armónicos →
+  tonos en banda; sin EP de feedback, el host no puede corregir).
+  La envolvente lenta ("tum tum" 0.5-1Hz) = nivel de buffer ciclando.
+- Varianza entre sesiones: 14/11 dio par 59.55/60.45 (bandas ±0.45Hz);
+  hoy bandas ±0.05Hz — la modulación depende de carga/contenido.
+- Los notches de scalapp ya cubren 60/120; para 30fps nativo el
+  portador 30Hz es casi subsónico y el 60 sigue cubierto.
+
 ## Estado
 - [x] Descriptores UAC parseados
 - [x] Bloques candidatos identificados (f10x/f14x/f12a)
 - [x] Watch en vivo: divisores estáticos, contadores libres
 - [x] Falsificado: retuning dinámico de divisores
-- [ ] Bomba EP 0x82 localizada
-- [ ] Atribución de tonos por capturas A/B
-- [ ] Causa confirmada
+- [x] Atribución de tonos por capturas A/B → dominio UVC
+- [ ] Bomba EP 0x82 localizada (el detalle fino del mecanismo)
+- [x] Causa atribuida al dominio (bomba de video UVC vs isoc audio)
