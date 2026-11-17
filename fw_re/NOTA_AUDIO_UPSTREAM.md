@@ -74,3 +74,27 @@
 ## Decisión operativa vigente
 Mitigación host-side (notch adaptativo scalapp) = estado de producción.
 Upstream = las rutas 1-2 de arriba, pendientes de decisión del dueño.
+
+## Resultado de la ruta 1 (17/11 noche): INAPLICABLE — con evidencia
+- Lectura completa de flash (ms213x_flash -r): 62,715 bytes = header
+  (0x30) + código (0xF4C7) — la imagen NO incluye la zona de user-data
+  0xF830+ donde vive audio_route_t según FOSDEM.
+- Escaneo de código: CERO referencias a 0xFB80/0xFB50 como datos (los
+  `mov dptr,#0xF8xx/0xFBxx` son registros XDATA, no lecturas de
+  user-config). Este build UltraSemi (bcdDevice 31.00) no implementa
+  la estructura del build de referencia.
+- XDATA 0xC800-0xD000 muerto (todo 00/FF) — sin copia runtime de la
+  config (el layout 0xCBD0 del MS2109 no aplica).
+- El descriptor UAC ofrece SOLO 48000Hz (tSamFreq único, 0xBB80) — el
+  host no puede negociar 96k aunque el chip tuviera el modo.
+- Dato curioso para el futuro: f12a=249 → 24e6/249 = 96,385Hz ≈ 2×48k
+  +0.4% (¿divisor de MCLK 2×fs?). Y el dispatcher de audio tiene modos
+  4/5/7 por IRAM 0x16 — si alguno fuera 96k, habría que ofrecerlo en
+  el descriptor para que el host lo pida.
+
+## Ruta 1-bis (pendiente de autorización EXPLÍCITA — otra clase de riesgo)
+Parchear los DESCRIPTORES en flash (datos, no código): tSamFreq
+48000→96000 (80 BB 00 → 80 77 01 @ ~0x728/0xcb2) + wMaxPacketSize
+192→384 (C0 00 → 80 01). Especulativo: ¿el firmware tiene path de
+config para 96k (¿modo 7?) o ignorará el pedido? Fallo → restaurar
+backup (tooling listo). NO ejecutar sin autorización.
