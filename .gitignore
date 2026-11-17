@@ -1,4 +1,5 @@
-.DS_Store
-.crush/
-.opencode/
-*.log
+# dumps binarios fuera del repo (firmware propietario + claves HDCP
+# del fabricante viven ahí — local only)
+*.bin
+*.raw
+backup/*.bin
