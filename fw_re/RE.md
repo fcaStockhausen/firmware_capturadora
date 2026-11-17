@@ -257,26 +257,48 @@ línea) fase-modula el reloj de muestreo → bandas laterales alrededor
 de refresco/2 y refresco = los pares medidos. Sin feedback EP, el
 host no puede corregirlo → tonos en banda.
 
+## Resultados en vivo (17/11 — device prestado, ffmpeg como cliente video-only)
+- Sanidad: 0x22BE:BF=0x2EE1 (120.01Hz entrada ✓), 22DE=1920 con stream ✓.
+- **Divisores ESTÁTICOS**: f102:f103=0x00F0 (240), f142:f143=0x00F4 (244),
+  f106:f107=0xC000, f108:f109=0xC0F8, f146:f147=0x0004 — IDÉNTICOS en
+  idle / streaming-60fps / post-stop. **El retuning dinámico de estos
+  registros está DESCARTADO** (12s @10Hz, 0 cambios).
+- f138/f139/f17c/f17e/f17f TOGGLEAN SIEMPRE (idle incluido, ~8Hz de
+  cambios) → contadores free-running, no config video-gated.
+- Diff bloque f100-f180 entre stream 60fps y "30fps": solo esos mismos
+  contadores (sin confirmar que el 30fps enganchara: 22E4 sigue 6000).
+- **Constraint nuevo**: los pares medidos son SIMÉTRICOS alrededor de
+  30.000/60.000 EXACTOS (media del par 60.4505+59.5490)/2 = 59.99975)
+  → bandas laterales de un proceso coherente a 60.000 exacto, con
+  modulación ~0.45/0.23Hz. Un divisor de 24MHz daría 60.000 limpio
+  (24e6/400000 = 60.000); el 59.94 HDMI NO es el portador.
+
+## Hipótesis vigente (post-falsificación)
+La inyección no es config-de-registro dinámica: es que el ENTREGADOR
+de muestras al EP 0x82 (bomba isoc) se pacinga contra un proceso de
+60.000Hz exacto (¿SOF-driven? ¿timer del diezmado 120→60?) cuyo
+timing real tiene jitter/wow de ~0.75% modulando a 0.23-0.45Hz, o DOS
+pumps de ~60Hz con rates distintos. Hay que leer el código de la
+bomba del EP — próximo milestone RE.
+
 ## Próximos pasos (en orden)
-1. **EN VIVO (device libre, video-only — sin cliente de audio, el HID
-   mata el isoc):** pollear con xdata los registros F102/F106/F108/
-   F142/F146 (y 0x1A72/0x1A74/0x1A78) durante streaming de video:
-   - Si TOGGLEAN periódicamente (~0.5-1Hz o por frame): retuning
-     dinámico = mecanismo confirmado EN SILICIO.
-   - Si estáticos: el acople es por derivación de reloj (PLL) →
-     analizar helper 0x6e64 y el divisor 0xF4.
-2. Encontrar la bomba del EP 0x82 ( quién llena el FIFO isoc) para
-   confirmar la fuente de muestras.
-3. Capturas discriminantes en scalapp (atribución de tonos):
-   a) UVC 30 nativo (--30) → ¿el par baja a ~30Hz o queda en 60?
-   b) fuente a 1080p60 (en vez de 120) → ¿se mueve el par?
-4. FIX posibles: parche de firmware (divisor estático del cristal —
-   hay tooling de flash y precedentes) / mantener notches host-side
-   (ya implementado y testeado en scalapp).
+1. **Atribución por captura (sin HID, scalapp solo):** con la fuente
+   SONANDO: (a) UVC 60fps nativo, (b) UVC 30fps (--30), (c) fuente a
+   1080p60. audio_diag sobre SCALAPP_REC dice si el par se mueve con
+   la tasa UVC o con la de entrada.
+2. **Bomba del EP 0x82**: los FIFOs de EP se escriben por DPTR indirecto
+   (invisible al scan directo) → RE del ISR USB (int vectors 8051) y
+   del handler del EP2 IN. Preguntar: ¿contra qué reloj se pacinga?
+3. Helper 0x6e64/0x6da7/0x6e2d (¿PLL wait-ready?) y semántica de los
+   divisores 240/244 (¿dos canales? ¿I2S L/R?).
+4. FIX: parche de firmware (pacing contra cristal) o notches host-side
+   (ya operativos en scalapp).
 
 ## Estado
 - [x] Descriptores UAC parseados
 - [x] Bloques candidatos identificados (f10x/f14x/f12a)
-- [ ] Watch en vivo de los candidatos
+- [x] Watch en vivo: divisores estáticos, contadores libres
+- [x] Falsificado: retuning dinámico de divisores
 - [ ] Bomba EP 0x82 localizada
-- [ ] Causa confirmada en silicio
+- [ ] Atribución de tonos por capturas A/B
+- [ ] Causa confirmada
