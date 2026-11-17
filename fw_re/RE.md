@@ -320,3 +320,46 @@ bomba del EP — próximo milestone RE.
 - [x] Atribución de tonos por capturas A/B → dominio UVC
 - [ ] Bomba EP 0x82 localizada (el detalle fino del mecanismo)
 - [x] Causa atribuida al dominio (bomba de video UVC vs isoc audio)
+
+---
+
+# Sesión 17/11 (tarde) — experimentos en vivo del bloque de audio
+
+## Mapa del bloque (streaming, valores vivos)
+```
+f100=05 (enable)      f101=05 (status)
+f102:f103=0x00F0(240) f104:f105=0x0004(4)
+f106:f107=0xC000      f108:f109=0xC0F8
+f10a:.. f10e:f10f=1   f112:f113=16
+f118-f11f = FF (sin mapear)
+f120=0x89 (enable modo-7 | status)  f121=07
+f122:f123=0           f124:f125=0x0078 (¡120!)
+f126:f127=0x003C (¡60!) f128=0x3C(60)/f129=32  f12a=0xF9(249)
+```
+- La config VIVA en runtime es el camino modo-7 (0x4d0c), no el 0x698b
+  (f106 en vivo=0xC0, nadie lo escribe directo → escrituras indirectas).
+- f12a=249: 24e6/250=96kHz exacto → 249 ≈ divisor de 2×fs (+0.4%).
+
+## Experimentos en vivo (resultados)
+1. **Writes PEGAN** (f100=00 quedó). El 0x01 de la primera prueba fue
+   valor inválido, no write-protection.
+2. **f127 (la constante "60") es CRÍTICA de entrega**: escribir 240
+   mató el audio al instante (cola 0.0ms, sin delivery). El pacing de
+   muestras se deriva de estas constantes de tasa de video.
+3. Error operativo de la sesión: restore equivocado (0x78 en f127 en
+   vez de 0x3C) → chip cayó del BUS (USB muerto, device not found).
+   **Replug = recuperación total** (flash nunca tocado). Post-replug:
+   registros stock, A/V completo, par de tonos de vuelta en crudo
+   (59.64/60.34) y muerto en la salida post-notch de scalapp.
+
+## Veredicto sobre la "cura de fondo" en firmware
+- El acople es ESTRUCTURAL: el divisor/pacing del audio se computa en
+  runtime desde constantes de tasa de video (120/60 hardcodeadas en
+  0x4d0c y vivas en f124-f129). No hay "un byte" que desacople.
+- Desacoplar = reescribir la derivación (bloque PLL/DMA indocumentado),
+  con riesgo de colgar el bus (visto hoy con UN registro). Requiere
+  capturadora de sacrificio + varias sesiones. NO recomendado sobre la
+  única tarjeta del usuario.
+- **Recomendación operativa**: notches host-side (scalapp, ya
+  operativos y testeados). Si el thump reaparece en otro modo:
+  SCALAPP_REC 40s + tools/audio_diag.py + --notch-hum-at.
