@@ -98,3 +98,24 @@ Parchear los DESCRIPTORES en flash (datos, no código): tSamFreq
 192→384 (C0 00 → 80 01). Especulativo: ¿el firmware tiene path de
 config para 96k (¿modo 7?) o ignorará el pedido? Fallo → restaurar
 backup (tooling listo). NO ejecutar sin autorización.
+
+## Resultado de la ruta 1-bis (17/11, ALL-IN ejecutado): descriptors OK, motor 48k-fijo
+- Imagen parcheada (backup/MS2131_96k.bin): tSamFreq 48000→96000 en
+  ambos sets (0x730/0xCBA) + wMaxPacket 192→384 (0x737/0xCC1) +
+  checksum recalculado (suma-16 del código — algoritmo del precedente
+  jmp120, VALIDADO de nuevo: el bootloader aceptó la imagen).
+- Flasheada y verificada → replug → **el descriptor VIVO anuncia
+  96000Hz** (leído por libusb) y **macOS negoció 96k**.
+- **PERO**: la entrega real medida = 1,166,336 frames / 24.3s =
+  48,000.0 frames/s exactos. El motor de audio del firmware declara
+  96k pero ENTREGA 48k → reproducción doble velocidad (chipmunk) y
+  cola desangrada. **No existe path de entrega 96k.**
+- REVERTIDO a backup/flash_20261117_pre96k.bin (verificado, 48k
+  restaurado, cola sana).
+- **Capabilities ganadas** (para el futuro): parchear descriptores en
+  flash funciona (checksum = suma-16 BE del código @0xF4F9); libusb
+  GET_DESCRIPTOR confirma cambios en vivo; el firmware SIRVE los
+  descriptores del blob (no los regenera).
+- **Cura por tasa: DESCARTADA.** El upstream restante = ruta 2
+  (preguntar a hsdaoh/ms-tools) o RE profundo del motor con tarjeta
+  de sacrificio. Operativamente: notch adaptativo host-side.
