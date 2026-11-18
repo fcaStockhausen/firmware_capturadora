@@ -3,3 +3,5 @@
 *.bin
 *.raw
 backup/*.bin
+.DS_Store
+.opencode/
